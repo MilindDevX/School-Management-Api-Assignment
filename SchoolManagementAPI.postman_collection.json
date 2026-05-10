@@ -1,0 +1,223 @@
+{
+  "info": {
+    "_postman_id": "school-management-api-collection",
+    "name": "School Management API",
+    "description": "A complete collection for testing the School Management API.\n\n## Endpoints\n- **POST /addSchool** — Add a new school with validation\n- **GET /listSchools** — List all schools sorted by proximity to a given location\n\n## Setup\n1. Set the `baseUrl` variable to your API's host (e.g. `http://localhost:3000` or your deployed URL)\n2. Run the schema.sql file to set up your MySQL database\n3. Copy `.env.example` to `.env` and fill in your database credentials\n\n## Distance\nSchools are sorted using the Haversine formula, returning `distance_km` for each school.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string",
+      "description": "Base URL of the deployed API"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        },
+        "description": "Check that the API server is running."
+      },
+      "response": [
+        {
+          "name": "200 OK — API Running",
+          "status": "OK",
+          "code": 200,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"status\": \"OK\",\n  \"message\": \"School Management API is running\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Add School — Valid",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Springfield Elementary\",\n  \"address\": \"742 Evergreen Terrace, Springfield, IL 62701\",\n  \"latitude\": 39.7817,\n  \"longitude\": -89.6501\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/addSchool",
+          "host": ["{{baseUrl}}"],
+          "path": ["addSchool"]
+        },
+        "description": "Add a new school to the database. All fields are required.\n\n**Validation rules:**\n- `name` — non-empty string, max 255 characters\n- `address` — non-empty string, max 500 characters\n- `latitude` — float between -90 and 90\n- `longitude` — float between -180 and 180"
+      },
+      "response": [
+        {
+          "name": "201 Created — School Added",
+          "status": "Created",
+          "code": 201,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"success\": true,\n  \"message\": \"School added successfully\",\n  \"data\": {\n    \"id\": 11,\n    \"name\": \"Springfield Elementary\",\n    \"address\": \"742 Evergreen Terrace, Springfield, IL 62701\",\n    \"latitude\": 39.7817,\n    \"longitude\": -89.6501,\n    \"created_at\": \"2024-01-15T10:30:00.000Z\",\n    \"updated_at\": \"2024-01-15T10:30:00.000Z\"\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Add School — Missing Name (422)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"address\": \"742 Evergreen Terrace, Springfield, IL 62701\",\n  \"latitude\": 39.7817,\n  \"longitude\": -89.6501\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/addSchool",
+          "host": ["{{baseUrl}}"],
+          "path": ["addSchool"]
+        },
+        "description": "Demonstrates validation error when `name` is missing."
+      },
+      "response": [
+        {
+          "name": "422 Unprocessable — Validation Error",
+          "status": "Unprocessable Entity",
+          "code": 422,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"success\": false,\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    {\n      \"field\": \"name\",\n      \"message\": \"Name is required\"\n    }\n  ]\n}"
+        }
+      ]
+    },
+    {
+      "name": "Add School — Invalid Coordinates (422)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Bad Coords School\",\n  \"address\": \"123 Test Street\",\n  \"latitude\": 999,\n  \"longitude\": -200\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/addSchool",
+          "host": ["{{baseUrl}}"],
+          "path": ["addSchool"]
+        },
+        "description": "Demonstrates validation when coordinates are out of range."
+      },
+      "response": [
+        {
+          "name": "422 Unprocessable — Invalid Coordinates",
+          "status": "Unprocessable Entity",
+          "code": 422,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"success\": false,\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    {\n      \"field\": \"latitude\",\n      \"message\": \"Latitude must be a number between -90 and 90\"\n    },\n    {\n      \"field\": \"longitude\",\n      \"message\": \"Longitude must be a number between -180 and 180\"\n    }\n  ]\n}"
+        }
+      ]
+    },
+    {
+      "name": "List Schools — Near New York",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/listSchools?latitude=40.7128&longitude=-74.0060",
+          "host": ["{{baseUrl}}"],
+          "path": ["listSchools"],
+          "query": [
+            {
+              "key": "latitude",
+              "value": "40.7128",
+              "description": "User's latitude (New York City)"
+            },
+            {
+              "key": "longitude",
+              "value": "-74.0060",
+              "description": "User's longitude (New York City)"
+            }
+          ]
+        },
+        "description": "Fetch all schools sorted by distance from New York City (40.7128, -74.0060).\n\nReturns each school with a `distance_km` field (Haversine distance in kilometres)."
+      },
+      "response": [
+        {
+          "name": "200 OK — Schools Sorted by Proximity",
+          "status": "OK",
+          "code": 200,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Schools retrieved and sorted by proximity\",\n  \"userLocation\": {\n    \"latitude\": 40.7128,\n    \"longitude\": -74.006\n  },\n  \"total\": 10,\n  \"data\": [\n    {\n      \"id\": 1,\n      \"name\": \"Greenwood High School\",\n      \"address\": \"123 Elm Street, New York, NY 10001\",\n      \"latitude\": 40.7128,\n      \"longitude\": -74.006,\n      \"created_at\": \"2024-01-15T10:00:00.000Z\",\n      \"distance_km\": 0\n    },\n    {\n      \"id\": 7,\n      \"name\": \"Westview Elementary\",\n      \"address\": \"987 Cedar Lane, Philadelphia, PA 19101\",\n      \"latitude\": 39.9526,\n      \"longitude\": -75.1652,\n      \"created_at\": \"2024-01-15T10:00:00.000Z\",\n      \"distance_km\": 130.4821\n    }\n  ]\n}"
+        }
+      ]
+    },
+    {
+      "name": "List Schools — Near Los Angeles",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/listSchools?latitude=34.0522&longitude=-118.2437",
+          "host": ["{{baseUrl}}"],
+          "path": ["listSchools"],
+          "query": [
+            {
+              "key": "latitude",
+              "value": "34.0522",
+              "description": "User's latitude (Los Angeles)"
+            },
+            {
+              "key": "longitude",
+              "value": "-118.2437",
+              "description": "User's longitude (Los Angeles)"
+            }
+          ]
+        },
+        "description": "Fetch all schools sorted by distance from Los Angeles."
+      },
+      "response": [
+        {
+          "name": "200 OK — Schools Sorted by Proximity",
+          "status": "OK",
+          "code": 200,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Schools retrieved and sorted by proximity\",\n  \"userLocation\": {\n    \"latitude\": 34.0522,\n    \"longitude\": -118.2437\n  },\n  \"total\": 10,\n  \"data\": [\n    {\n      \"id\": 2,\n      \"name\": \"Sunrise Academy\",\n      \"address\": \"456 Oak Avenue, Los Angeles, CA 90001\",\n      \"latitude\": 34.0522,\n      \"longitude\": -118.2437,\n      \"distance_km\": 0\n    }\n  ]\n}"
+        }
+      ]
+    },
+    {
+      "name": "List Schools — Missing Latitude (422)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/listSchools?longitude=-74.0060",
+          "host": ["{{baseUrl}}"],
+          "path": ["listSchools"],
+          "query": [
+            {
+              "key": "longitude",
+              "value": "-74.0060"
+            }
+          ]
+        },
+        "description": "Demonstrates validation error when latitude is missing."
+      },
+      "response": [
+        {
+          "name": "422 Unprocessable — Missing Latitude",
+          "status": "Unprocessable Entity",
+          "code": 422,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"success\": false,\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    {\n      \"field\": \"latitude\",\n      \"message\": \"Latitude query parameter is required\"\n    }\n  ]\n}"
+        }
+      ]
+    }
+  ]
+}
