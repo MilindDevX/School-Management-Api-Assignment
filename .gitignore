@@ -2,3 +2,7 @@ node_modules/
 .env
 *.log
 dist/
+.ai-workflow/
+.agent/
+.agents/
+Agent_Outputs/
